@@ -7,7 +7,7 @@ require("dotenv").config();
 console.log(process.env.windir); // prints your PORT from .env or system
 console.log(process.env.NODE_ENV); // development / production etc.
 
-console.log(process.env.color);
+console.log(process.env.PSModulePath);
 
 console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "Yes" : "No");
 console.log("All env keys:", Object.keys(process.env));

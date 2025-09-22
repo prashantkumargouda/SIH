@@ -19,7 +19,14 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('role').optional().isIn(['teacher', 'student']).withMessage('Invalid role'),
-  body('rollNumber').optional().trim().isLength({ min: 1 }).withMessage('Roll number cannot be empty')
+  // body('rollNumber').optional().trim().isLength({ min: 1 }).withMessage('Roll number cannot be empty') 
+  body('rollNumber').custom((value, { req }) => {
+    if (req.body.role === 'student' && (!value || value.trim().length === 0)) {
+      throw new Error('Roll number is required for students');
+    }
+    return true; // teachers are allowed to skip it
+  })
+  
 ], async (req, res) => {
   try {
     console.log('Registration request received:', req.body);
