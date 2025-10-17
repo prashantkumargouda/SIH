@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CareBridge — Digital Health Equity</title>
+  <meta name="description" content="Multi-agent AI coach for patients with appointment booking: explainers, nudges, therapy, and resources." />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel-2: #0f1728;
+      --text: #e6eefc;
+      --muted: #9db0d3;
+      --brand: #64b5ff;
+      --brand-2: #5ee1a7;
+      --danger: #ff6b6b;
+      --warning: #ffcf5c;
+      --ok: #50fa7b;
+      --card: #161f35;
+      --border: #233051;
+      --shadow: 0 10px 25px rgba(0,0,0,0.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 10% -20%, #14203b 0%, transparent 60%),
+                  radial-gradient(1200px 800px at 110% 10%, #0d1a30 0%, transparent 50%),
+                  var(--bg);
+      color: var(--text);
+      font: 500 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(10, 16, 30, 0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      max-width: 1100px; margin: 0 auto; padding: 14px 18px;
+      display: flex; align-items: center; gap: 16px; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.3px; }
+    .logo {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      display: grid; place-items: center; color: #0b1220; font-weight: 900;
+      box-shadow: 0 6px 18px rgba(100,181,255,0.35);
+    }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .lang-select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+    .btn {
+      background: linear-gradient(180deg, #1b273f, #15213a);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 14px; color: var(--text);
+      cursor: pointer; transition: transform 0.08s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: #355187; }
+    .btn.primary { background: linear-gradient(180deg, #3a5aff, #2b49e0); border-color: #405cff; box-shadow: 0 10px 20px rgba(65, 101, 255, 0.25); }
+    .btn.ghost { background: transparent; border-color: var(--border); }
+    .btn.danger { background: linear-gradient(180deg, #ff7575, #ff4a4a); border-color: #ff5858; }
+    .badge { padding: 4px 8px; background: #12244a; border: 1px solid #1d3975; border-radius: 999px; color: #a9c7ff; font-size: 12px; }
+
+    /* Layout */
+    .container { max-width: 1100px; margin: 22px auto; padding: 0 18px; }
+
+    /* Auth */
+    .auth-wrapper { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: stretch; }
+    .hero {
+      background: linear-gradient(180deg, #0d1930, #0b1528);
+      border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow);
+      display: grid; align-content: start; gap: 14px; min-height: 520px; position: relative; overflow: hidden;
+    }
+    .hero h1 { margin: 2px 0 2px; font-size: 32px; }
+    .hero p { color: var(--muted); margin: 0 0 8px; }
+    .hero-tiles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 6px; }
+    .tile { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+
+    .auth-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; }
+    .tab { padding: 12px; text-align: center; background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; }
+    .tab.active { border-bottom-color: var(--brand); color: var(--brand); font-weight: 700; }
+    .auth-body { padding: 18px; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .form-row { display: grid; gap: 8px; }
+    .form-row label { color: var(--muted); font-size: 13px; }
+    .form-row input, .form-row select, .form-row textarea {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    }
+    .form-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 6px; }
+
+    /* Dashboard */
+    #dashboard-section { display: none; }
+    .dash-grid { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; align-items: start; }
+
+    .search-bar { display: flex; gap: 8px; align-items: center; }
+    .search-bar input { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+    .panel h3 { margin: 0 0 10px; }
+
+    .hospital-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .hospital-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: grid; gap: 8px; }
+    .hospital-meta { color: var(--muted); font-size: 14px; }
+    .hospital-actions { display: flex; gap: 8px; }
+
+    .appt-card { background: #0e1b36; border: 1px solid #2a3e72; border-radius: 12px; padding: 12px; display: grid; gap: 6px; }
+    .appt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Modal */
+    dialog::backdrop { background: rgba(6,10,20,0.6); backdrop-filter: blur(2px); }
+    dialog { width: min(720px, 92vw); border: 1px solid var(--border); border-radius: 16px; background: var(--panel); color: var(--text); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .modal-body { padding: 16px; display: grid; gap: 12px; }
+    .slots { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+    .slot-btn { padding: 10px 8px; border: 1px solid var(--border); background: var(--card); border-radius: 10px; cursor: pointer; text-align: center; }
+    .slot-btn[disabled] { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
+    .slot-btn.selected { outline: 2px solid var(--brand); background: #14224a; }
+
+    /* Therapy widget */
+    .therapy { display: grid; gap: 10px; }
+    .breath {
+      display: grid; place-items: center; padding: 20px; background: #0b1a34; border: 1px solid #183463; border-radius: 12px;
+    }
+    .bubble { width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #7cd3ff, #4c7fff); box-shadow: inset 0 10px 18px rgba(255,255,255,0.2), 0 12px 24px rgba(0,0,0,0.35); transform: scale(1); }
+    .bubble.anim { animation: breathe 8s ease-in-out infinite; }
+    @keyframes breathe { 0%{ transform: scale(0.9);} 50%{ transform: scale(1.15);} 100%{ transform: scale(0.9);} }
+
+    .resources li { margin: 6px 0; }
+
+    .muted { color: var(--muted); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* Responsive */
+    @media (max-width: 980px) { .auth-wrapper, .dash-grid { grid-template-columns: 1fr; } .hospital-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav" role="navigation" aria-label="Main">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">CB</div>
+        <div>
+          CareBridge <span class="badge">Digital Health Equity</span>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <select id="languageSelect" class="lang-select" aria-label="Language">
+          <option value="en" selected>English</option>
+          <option value="hi">हिन्दी</option>
+        </select>
+        <button id="logoutBtn" class="btn ghost" style="display:none">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- AUTH SECTION -->
+    <section id="auth-section" aria-label="Authentication">
+      <div class="auth-wrapper">
+        <aside class="hero">
+          <span class="badge">Multi‑Agent AI Coach</span>
+          <h1>Bridge the gap after the clinic</h1>
+          <p class="muted">Explain. Nudge. Support. Connect. A reliable digital companion for every patient.</p>
+          <div class="hero-tiles" aria-hidden="true">
+            <div class="tile">🧠 Explainer Agent — simple visual care guides</div>
+            <div class="tile">⏰ Nudge Agent — WhatsApp reminders</div>
+            <div class="tile">💬 Therapy Agent — CBT & mindfulness</div>
+            <div class="tile">🧭 Resource Agent — real-world support</div>
+          </div>
+          <div style="margin-top:auto" class="muted">Demo only. No server. Data stored in your browser.</div>
+        </aside>
+        <div class="auth-card" role="region" aria-label="Login and Sign up">
+          <div class="tabs">
+            <button class="tab active" id="tab-login">Log in</button>
+            <button class="tab" id="tab-signup">Sign up</button>
+          </div>
+          <div class="auth-body">
+            <!-- Login -->
+            <form id="loginForm" autocomplete="on" aria-hidden="false">
+              <div class="form-grid">
+                <div class="form-row" style="grid-column: span 2;">
+                  <label for="loginEmail">Email</label>
+                  <input id="loginEmail" type="email" placeholder="you@example.com" required />
+                </div>
+                <div class="form-row" style="grid-column: span 2;">
+                  <label for="loginPassword">Password</label>
+                  <input id="loginPassword" type="password" placeholder="••••••••" required />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Log in</button>
+              </div>
+            </form>
+
+            <!-- Signup -->
+            <form id="signupForm" style="display:none" autocomplete="on">
+              <div class="form-grid">
+                <div class="form-row">
+                  <label for="suName">Full name</label>
+                  <input id="suName" type="text" placeholder="Alex Johnson" required />
+                </div>
+                <div class="form-row">
+                  <label for="suEmail">Email</label>
+                  <input id="suEmail" type="email" placeholder="you@example.com" required />
+                </div>
+                <div class="form-row">
+                  <label for="suPhone">Phone</label>
+                  <input id="suPhone" type="tel" placeholder="+91 98765 43210" required />
+                </div>
+                <div class="form-row">
+                  <label for="suGender">Gender</label>
+                  <select id="suGender" required>
+                    <option value="">Select…</option>
+                    <option>Female</option>
+                    <option>Male</option>
+                    <option>Non-binary</option>
+                    <option>Prefer not to say</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="suDob">Date of birth</label>
+                  <input id="suDob" type="date" required />
+                </div>
+                <div class="form-row">
+                  <label for="suAddress">Address</label>
+                  <input id="suAddress" type="text" placeholder="City, State" required />
+                </div>
+                <div class="form-row">
+                  <label for="suPassword">Password</label>
+                  <input id="suPassword" type="password" placeholder="Create a strong password" required />
+                </div>
+                <div class="form-row">
+                  <label for="suPassword2">Confirm password</label>
+                  <input id="suPassword2" type="password" placeholder="Repeat password" required />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Create account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD SECTION -->
+    <section id="dashboard-section" aria-label="Hospital selection and booking">
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="row" style="justify-content: space-between;">
+            <div>
+              <h3>Welcome, <span id="welcomeName">Patient</span></h3>
+              <div class="muted" id="geoStatus">Tip: allow location to sort nearby hospitals.</div>
+            </div>
+            <div class="search-bar">
+              <input id="searchInput" type="search" placeholder="Search hospitals or city…" />
+              <button id="locateBtn" class="btn">Use my location</button>
+            </div>
+          </div>
+
+          <div style="height: 10px"></div>
+
+          <div class="hospital-grid" id="hospitalGrid" role="list">
+            <!-- hospital cards injected here -->
+          </div>
+        </div>
+
+        <div class="panel" aria-label="Wellbeing and resources">
+          <h3>Wellbeing & Support</h3>
+          <div class="therapy">
+            <div class="breath">
+              <div class="bubble" id="bubble"></div>
+              <div class="muted" id="breathText" style="margin-top:10px">Breathe in… Breathe out…</div>
+              <div class="row" style="margin-top:8px">
+                <button id="startBreath" class="btn">Start 1‑minute</button>
+                <button id="stopBreath" class="btn ghost">Stop</button>
+              </div>
+            </div>
+            <div class="panel" style="background:#0b1a34;border-color:#183463">
+              <strong id="cbtTitle">CBT thought reframing</strong>
+              <div class="muted">Note a difficult thought and write a kinder response.</div>
+              <textarea id="cbtInput" rows="3" placeholder="I feel… because…"></textarea>
+              <div class="form-actions" style="justify-content:flex-start">
+                <button id="cbtSuggest" class="btn">Suggest a reframe</button>
+                <div id="cbtOutput" class="muted"></div>
+              </div>
+            </div>
+            <div class="panel resources" style="background:#0b1a34;border-color:#183463">
+              <strong>Resources</strong>
+              <ul>
+                <li>Emergency: <strong>112</strong> (India), <strong>911</strong> (US)</li>
+                <li>Mental Health Helpline (India): <a href="https://telemanas.mohfw.gov.in/" target="_blank" rel="noreferrer">Tele-MANAS</a></li>
+                <li>Find nearby clinics: <a href="https://www.google.com/maps/search/clinic+near+me" target="_blank" rel="noreferrer">open maps</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="height: 16px"></div>
+
+          <div class="panel" aria-label="Your upcoming appointments">
+            <h3>Your appointments</h3>
+            <div id="appointmentsList" style="display:grid; gap:10px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Booking Modal -->
+  <dialog id="bookingModal" aria-label="Schedule appointment">
+    <div class="modal-head">
+      <div>
+        <div style="font-weight:700" id="modalHospitalName">Hospital</div>
+        <div class="muted" id="modalHospitalMeta">Address</div>
+      </div>
+      <button id="closeModal" class="btn ghost">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="form-row">
+          <label for="dateInput">Select date</label>
+          <input id="dateInput" type="date" />
+        </div>
+        <div class="form-row">
+          <label>Duration</label>
+          <select id="durationSelect">
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="muted">Available time slots</div>
+      <div class="slots" id="slotsContainer"></div>
+      <div class="form-actions">
+        <button id="confirmBooking" class="btn primary" disabled>Confirm booking</button>
+      </div>
+      <div class="muted" id="previsitGuide">Pre‑visit tips: arrive 10 minutes early, carry an ID, list your medicines.</div>
+    </div>
+  </dialog>
+
+  <footer class="container" style="color:#88a1d8; opacity:0.85; padding-bottom:30px">
+    This demo stores data locally in your browser and is not a medical device.
+  </footer>
+
+  <script>
+    // -----------------------------
+    // Utilities
+    // -----------------------------
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const fmtDate = (d) => d.toISOString().slice(0,10);
+    const pad = (n) => String(n).padStart(2,'0');
+
+    function toLocalDateTime(dateStr, timeStr) {
+      const [y,m,d] = dateStr.split('-').map(Number);
+      const [hh,mm] = timeStr.split(':').map(Number);
+      return new Date(y, m-1, d, hh, mm);
+    }
+
+    function minutesAdd(date, minutes) {
+      return new Date(date.getTime() + minutes*60000);
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const toRad = (v) => v * Math.PI / 180;
+      const R = 6371; // km
+      const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function timeRangeSlots(openHHMM, closeHHMM, slotMin, dateStr) {
+      const [oh, om] = openHHMM.split(':').map(Number);
+      const [ch, cm] = closeHHMM.split(':').map(Number);
+      const start = toLocalDateTime(dateStr, `${pad(oh)}:${pad(om)}`);
+      const end = toLocalDateTime(dateStr, `${pad(ch)}:${pad(cm)}`);
+      const slots = [];
+      let t = new Date(start);
+      const now = new Date();
+      while (t < end) {
+        const label = `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+        // Disable past slots if today
+        const isPast = fmtDate(t) === fmtDate(now) && t <= now;
+        slots.push({ label, disabled: isPast });
+        t = minutesAdd(t, slotMin);
+      }
+      return slots;
+    }
+
+    function icsForAppointment(appt, hospital) {
+      const dt = toLocalDateTime(appt.date, appt.time);
+      const dtEnd = minutesAdd(dt, appt.durationMin || 30);
+      const toUTC = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+      const now = new Date();
+      const uid = `${appt.id}@carebridge.local`;
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//CareBridge//Appointment//EN',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${toUTC(now)}`,
+        `DTSTART:${toUTC(dt)}`,
+        `DTEND:${toUTC(dtEnd)}`,
+        `SUMMARY:Appointment — ${hospital.name}`,
+        `LOCATION:${hospital.address}`,
+        'DESCRIPTION:Booked via CareBridge demo',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      return URL.createObjectURL(blob);
+    }
+
+    // -----------------------------
+    // Demo data
+    // -----------------------------
+    const hospitals = [
+      { id:'h1', name:'CityCare Hospital', city:'Bengaluru', address:'MG Road, Bengaluru', phone:'+91 080 1234 5678', rating:4.5, lat:12.9716, lng:77.5946, hours:{ open:'09:00', close:'17:30' }, slotMin:30 },
+      { id:'h2', name:'Sunrise Medical Center', city:'Mumbai', address:'Bandra West, Mumbai', phone:'+91 022 4321 5678', rating:4.3, lat:19.0760, lng:72.8777, hours:{ open:'08:30', close:'18:00' }, slotMin:30 },
+      { id:'h3', name:'Harmony Health Clinic', city:'New Delhi', address:'Connaught Place, New Delhi', phone:'+91 011 2468 1357', rating:4.2, lat:28.6139, lng:77.2090, hours:{ open:'10:00', close:'19:00' }, slotMin:30 },
+      { id:'h4', name:'Lotus Care Hospital', city:'Hyderabad', address:'Banjara Hills, Hyderabad', phone:'+91 040 3579 2468', rating:4.4, lat:17.3850, lng:78.4867, hours:{ open:'09:00', close:'17:00' }, slotMin:30 },
+      { id:'h5', name:'Seaside Clinic', city:'Chennai', address:'Adyar, Chennai', phone:'+91 044 1111 2222', rating:4.1, lat:13.0827, lng:80.2707, hours:{ open:'08:00', close:'16:00' }, slotMin:30 },
+      { id:'h6', name:'Green Valley Hospital', city:'Pune', address:'Aundh, Pune', phone:'+91 020 9999 5555', rating:4.0, lat:18.5204, lng:73.8567, hours:{ open:'09:30', close:'17:30' }, slotMin:30 },
+      { id:'h7', name:'Riverside Medical', city:'Kolkata', address:'Salt Lake, Kolkata', phone:'+91 033 8765 4321', rating:4.2, lat:22.5726, lng:88.3639, hours:{ open:'09:00', close:'18:00' }, slotMin:30 },
+      { id:'h8', name:'Prairie Health Center', city:'Jaipur', address:'Malviya Nagar, Jaipur', phone:'+91 0141 333 4444', rating:4.0, lat:26.9124, lng:75.7873, hours:{ open:'09:00', close:'17:00' }, slotMin:30 }
+    ];
+
+    // -----------------------------
+    // Storage
+    // -----------------------------
+    const store = {
+      read(key, fallback){ try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
+      write(key, value){ localStorage.setItem(key, JSON.stringify(value)); },
+    };
+
+    function getUsers(){ return store.read('users', []); }
+    function saveUsers(users){ store.write('users', users); }
+    function getAppointments(){ return store.read('appointments', []); }
+    function saveAppointments(appts){ store.write('appointments', appts); }
+    function setCurrentUserId(id){ localStorage.setItem('currentUserId', id); }
+    function getCurrentUserId(){ return localStorage.getItem('currentUserId'); }
+    function getCurrentUser(){ const id = getCurrentUserId(); return getUsers().find(u => u.id === id) || null; }
+
+    // -----------------------------
+    // Auth
+    // -----------------------------
+    const tabLogin = $('#tab-login');
+    const tabSignup = $('#tab-signup');
+    const loginForm = $('#loginForm');
+    const signupForm = $('#signupForm');
+    const logoutBtn = $('#logoutBtn');
+
+    tabLogin.addEventListener('click', () => switchTab('login'));
+    tabSignup.addEventListener('click', () => switchTab('signup'));
+
+    function switchTab(name){
+      const isLogin = name === 'login';
+      tabLogin.classList.toggle('active', isLogin);
+      tabSignup.classList.toggle('active', !isLogin);
+      loginForm.style.display = isLogin ? '' : 'none';
+      signupForm.style.display = isLogin ? 'none' : '';
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = $('#loginEmail').value.trim().toLowerCase();
+      const pwd = $('#loginPassword').value;
+      const user = getUsers().find(u => u.email === email && u.password === pwd);
+      if (!user) return alert('Invalid email or password');
+      setCurrentUserId(user.id);
+      showDashboard();
+    });
+
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = $('#suName').value.trim();
+      const email = $('#suEmail').value.trim().toLowerCase();
+      const phone = $('#suPhone').value.trim();
+      const gender = $('#suGender').value;
+      const dob = $('#suDob').value;
+      const address = $('#suAddress').value.trim();
+      const pwd = $('#suPassword').value;
+      const pwd2 = $('#suPassword2').value;
+
+      if (!name || !email || !phone || !gender || !dob || !address || !pwd) return alert('Please fill all fields');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return alert('Enter a valid email');
+      if (pwd.length < 6) return alert('Password must be at least 6 characters');
+      if (pwd !== pwd2) return alert('Passwords do not match');
+      const users = getUsers();
+      if (users.some(u => u.email === email)) return alert('Email already registered');
+
+      const id = 'u-' + Math.random().toString(36).slice(2,9);
+      users.push({ id, name, email, phone, gender, dob, address, password: pwd, createdAt: Date.now() });
+      saveUsers(users);
+      setCurrentUserId(id);
+      showDashboard();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUserId');
+      $('#dashboard-section').style.display = 'none';
+      $('#auth-section').style.display = '';
+      logoutBtn.style.display = 'none';
+    });
+
+    // -----------------------------
+    // Dashboard & Hospitals
+    // -----------------------------
+    const hospitalGrid = $('#hospitalGrid');
+    const welcomeName = $('#welcomeName');
+    const searchInput = $('#searchInput');
+    const locateBtn = $('#locateBtn');
+    const geoStatus = $('#geoStatus');
+
+    let userLocation = null; // { lat, lng }
+
+    function showDashboard(){
+      const user = getCurrentUser();
+      if (!user) return;
+      $('#auth-section').style.display = 'none';
+      $('#dashboard-section').style.display = '';
+      logoutBtn.style.display = '';
+      welcomeName.textContent = user.name.split(' ')[0];
+      renderHospitals();
+      renderAppointments();
+    }
+
+    function renderHospitals(){
+      const q = searchInput.value.trim().toLowerCase();
+      let list = hospitals.map(h => ({ ...h }));
+      if (userLocation) {
+        list.forEach(h => h.distanceKm = haversineKm(userLocation.lat, userLocation.lng, h.lat, h.lng));
+        list.sort((a,b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
+      }
+      if (q) list = list.filter(h => (h.name + ' ' + h.city).toLowerCase().includes(q));
+
+      hospitalGrid.innerHTML = '';
+      if (!list.length) {
+        hospitalGrid.innerHTML = '<div class="muted">No hospitals match your search.</div>';
+        return;
+      }
+
+      for (const h of list) {
+        const el = document.createElement('div');
+        el.className = 'hospital-card';
+        const dist = h.distanceKm != null ? ` • ${h.distanceKm.toFixed(1)} km` : '';
+        el.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+            <div style="font-weight:700">${h.name}</div>
+            <div class="badge">⭐ ${h.rating.toFixed(1)}</div>
+          </div>
+          <div class="hospital-meta">${h.city}${dist}</div>
+          <div class="muted">${h.address} · ${h.phone}</div>
+          <div class="hospital-actions">
+            <button class="btn" data-act="view" data-id="${h.id}">View & Book</button>
+            <button class="btn ghost" data-act="call" data-phone="${h.phone}">Call</button>
+            <button class="btn ghost" data-act="map" data-lat="${h.lat}" data-lng="${h.lng}">Map</button>
+          </div>
+        `;
+        el.addEventListener('click', (ev) => {
+          const t = ev.target.closest('button');
+          if (!t) return;
+          const act = t.getAttribute('data-act');
+          if (act === 'view') openBooking(h.id);
+          if (act === 'call') window.open(`tel:${t.getAttribute('data-phone')}`);
+          if (act === 'map') window.open(`https://www.google.com/maps?q=${t.getAttribute('data-lat')},${t.getAttribute('data-lng')}`,'_blank');
+        });
+        hospitalGrid.appendChild(el);
+      }
+    }
+
+    searchInput.addEventListener('input', renderHospitals);
+
+    locateBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        geoStatus.textContent = 'Geolocation not supported in this browser.';
+        return;
+      }
+      geoStatus.textContent = 'Locating…';
+      navigator.geolocation.getCurrentPosition((pos) => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        geoStatus.textContent = 'Location set. Sorted by nearest.';
+        renderHospitals();
+      }, () => {
+        geoStatus.textContent = 'Could not get location permission.';
+      });
+    });
+
+    // -----------------------------
+    // Booking modal
+    // -----------------------------
+    const bookingModal = $('#bookingModal');
+    const closeModalBtn = $('#closeModal');
+    const modalHospitalName = $('#modalHospitalName');
+    const modalHospitalMeta = $('#modalHospitalMeta');
+    const dateInput = $('#dateInput');
+    const durationSelect = $('#durationSelect');
+    const slotsContainer = $('#slotsContainer');
+    const confirmBooking = $('#confirmBooking');
+
+    let activeHospital = null;
+    let selectedSlot = null;
+
+    function openBooking(hospitalId){
+      activeHospital = hospitals.find(h => h.id === hospitalId);
+      if (!activeHospital) return;
+      modalHospitalName.textContent = activeHospital.name;
+      modalHospitalMeta.textContent = `${activeHospital.address} · ${activeHospital.phone}`;
+
+      // Set date min=today
+      const today = new Date();
+      dateInput.min = fmtDate(today);
+      dateInput.value = fmtDate(today);
+
+      selectedSlot = null;
+      confirmBooking.disabled = true;
+      renderSlots();
+      bookingModal.showModal();
+    }
+
+    function renderSlots(){
+      if (!activeHospital) return;
+      const dateStr = dateInput.value || fmtDate(new Date());
+      const slotMin = parseInt(durationSelect.value, 10) || activeHospital.slotMin || 30;
+      const allSlots = timeRangeSlots(activeHospital.hours.open, activeHospital.hours.close, slotMin, dateStr);
+      const taken = getAppointments().filter(a => a.hospitalId === activeHospital.id && a.date === dateStr).map(a => a.time);
+
+      slotsContainer.innerHTML = '';
+      for (const s of allSlots) {
+        const btn = document.createElement('button');
+        btn.className = 'slot-btn';
+        btn.type = 'button';
+        btn.textContent = s.label;
+        const isTaken = taken.includes(s.label);
+        btn.disabled = s.disabled || isTaken;
+        if (isTaken) btn.title = 'Booked';
+        btn.addEventListener('click', () => {
+          $$('.slot-btn', slotsContainer).forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedSlot = s.label;
+          confirmBooking.disabled = false;
+        });
+        slotsContainer.appendChild(btn);
+      }
+    }
+
+    dateInput.addEventListener('change', renderSlots);
+    durationSelect.addEventListener('change', renderSlots);
+
+    closeModalBtn.addEventListener('click', () => bookingModal.close());
+
+    confirmBooking.addEventListener('click', () => {
+      const user = getCurrentUser();
+      if (!user || !activeHospital || !selectedSlot) return;
+      const appts = getAppointments();
+      const duplicate = appts.some(a => a.hospitalId === activeHospital.id && a.date === dateInput.value && a.time === selectedSlot);
+      if (duplicate) return alert('This slot was just booked. Pick another.');
+      const id = 'a-' + Math.random().toString(36).slice(2,9);
+      const durationMin = parseInt(durationSelect.value, 10) || 30;
+      appts.push({ id, userId: user.id, hospitalId: activeHospital.id, date: dateInput.value, time: selectedSlot, durationMin, createdAt: Date.now() });
+      saveAppointments(appts);
+      bookingModal.close();
+      renderAppointments();
+      alert('Appointment booked! You can add to calendar or send a WhatsApp reminder from the list.');
+    });
+
+    // -----------------------------
+    // Appointments list
+    // -----------------------------
+    const appointmentsList = $('#appointmentsList');
+
+    function renderAppointments(){
+      const user = getCurrentUser();
+      if (!user) return;
+      const appts = getAppointments().filter(a => a.userId === user.id).sort((a,b) => toLocalDateTime(a.date,a.time) - toLocalDateTime(b.date,b.time));
+      appointmentsList.innerHTML = '';
+      if (!appts.length) {
+        appointmentsList.innerHTML = '<div class="muted">No appointments yet.</div>';
+        return;
+      }
+      for (const a of appts) {
+        const h = hospitals.find(h => h.id === a.hospitalId);
+        const when = toLocalDateTime(a.date, a.time);
+        const el = document.createElement('div');
+        el.className = 'appt-card';
+        el.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+            <div style="font-weight:700">${h?.name ?? 'Hospital'}</div>
+            <div class="badge">${a.durationMin} min</div>
+          </div>
+          <div class="muted">${a.date} at ${a.time}</div>
+          <div class="muted">${h?.address ?? ''}</div>
+          <div class="appt-actions">
+            <button class="btn" data-act="whatsapp">WhatsApp reminder</button>
+            <a class="btn ghost" data-act="calendar" href="#" download="appointment.ics">Add to Calendar</a>
+            <button class="btn danger" data-act="cancel">Cancel</button>
+          </div>
+        `;
+        const waBtn = el.querySelector('[data-act="whatsapp"]');
+        waBtn.addEventListener('click', () => sendWhatsAppReminder(a, h));
+        const icsLink = el.querySelector('[data-act="calendar"]');
+        icsLink.href = icsForAppointment(a, h);
+        const cancelBtn = el.querySelector('[data-act="cancel"]');
+        cancelBtn.addEventListener('click', () => cancelAppointment(a.id));
+        appointmentsList.appendChild(el);
+      }
+    }
+
+    function cancelAppointment(id){
+      if (!confirm('Cancel this appointment?')) return;
+      const appts = getAppointments().filter(a => a.id !== id);
+      saveAppointments(appts);
+      renderAppointments();
+      if (activeHospital) renderSlots();
+    }
+
+    function sendWhatsAppReminder(appt, hospital){
+      const when = `${appt.date} at ${appt.time}`;
+      const msg = `Reminder: Appointment at ${hospital.name} on ${when}. Address: ${hospital.address}.`;
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+
+    // -----------------------------
+    // Therapy widgets & i18n (basic)
+    // -----------------------------
+    const bubble = $('#bubble');
+    const breathText = $('#breathText');
+    const startBreath = $('#startBreath');
+    const stopBreath = $('#stopBreath');
+    const cbtInput = $('#cbtInput');
+    const cbtSuggest = $('#cbtSuggest');
+    const cbtOutput = $('#cbtOutput');
+    const languageSelect = $('#languageSelect');
+
+    let breathTimer = null;
+
+    startBreath.addEventListener('click', () => {
+      if (breathTimer) clearInterval(breathTimer);
+      bubble.classList.add('anim');
+      const phrases = [t('breathe_in'), t('hold'), t('breathe_out'), t('hold')];
+      let i = 0; breathText.textContent = phrases[i];
+      breathTimer = setInterval(() => { i = (i+1)%phrases.length; breathText.textContent = phrases[i]; }, 2000);
+      setTimeout(() => { bubble.classList.remove('anim'); clearInterval(breathTimer); breathText.textContent = t('well_done'); breathTimer = null; }, 60000);
+    });
+    stopBreath.addEventListener('click', () => { bubble.classList.remove('anim'); if (breathTimer) clearInterval(breathTimer); breathText.textContent = t('paused'); breathTimer = null; });
+
+    cbtSuggest.addEventListener('click', () => {
+      const text = cbtInput.value.trim();
+      if (!text) { cbtOutput.textContent = t('cbt_prompt'); return; }
+      cbtOutput.textContent = t('cbt_suggestion');
+    });
+
+    const dict = {
+      en: {
+        breathe_in: 'Breathe in…', hold: 'Hold…', breathe_out: 'Breathe out…', well_done: 'Well done! Keep going today.', paused: 'Paused',
+        cbt_prompt: 'Write a thought first.', cbt_suggestion: 'Try telling yourself: I am learning and taking small steps.'
+      },
+      hi: {
+        breathe_in: 'साँस अंदर लें…', hold: 'रोकें…', breathe_out: 'साँस बाहर छोड़ें…', well_done: 'बहुत बढ़िया! आज जारी रखें.', paused: 'रुका हुआ',
+        cbt_prompt: 'पहले एक विचार लिखें.', cbt_suggestion: 'अपने आप से कहें: मैं सीख रहा/रही हूँ और छोटे कदम ले रहा/रही हूँ.'
+      }
+    };
+
+    function t(key){
+      const lang = languageSelect.value || 'en';
+      return (dict[lang] && dict[lang][key]) || dict.en[key] || key;
+    }
+
+    languageSelect.addEventListener('change', () => {
+      // update current therapy labels immediately
+      if (!bubble.classList.contains('anim')) breathText.textContent = t('breathe_in') + ' ' + t('breathe_out');
+    });
+
+    // -----------------------------
+    // Init
+    // -----------------------------
+    (function init(){
+      // Set default date min attributes for safety
+      $('#suDob').max = fmtDate(new Date());
+      const current = getCurrentUser();
+      if (current) showDashboard();
+      else switchTab('login');
+    })();
+  </script>
+</body>
+</html>
